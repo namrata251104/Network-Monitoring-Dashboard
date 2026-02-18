@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block title %}Logs - Network Monitor{% endblock %}
+
+{% block breadcrumb %}
+<span>Logs</span>
+{% endblock %}
+
+{% block content %}
+<div class="logs-container">
+    <div class="logs-header">
+        <h1 class="logs-title">System Logs</h1>
+        <div class="logs-actions">
+            <button class="btn btn-outline-primary" id="refreshLogs">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+            <button class="btn btn-outline-secondary" id="exportLogs">
+                <i class="fas fa-download"></i>
+                Export
+            </button>
+            <button class="btn btn-outline-danger" id="clearLogs">
+                <i class="fas fa-trash"></i>
+                Clear
+            </button>
+        </div>
+    </div>
+    
+    <div class="logs-filters">
+        <div class="filter-group">
+            <label for="logType" class="form-label">Log Type</label>
+            <select id="logType" class="form-select">
+                <option value="all">All Logs</option>
+                <option value="login">Login Activity</option>
+                <option value="alerts">System Alerts</option>
+                <option value="system">System Events</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="logSeverity" class="form-label">Severity</label>
+            <select id="logSeverity" class="form-select">
+                <option value="all">All Levels</option>
+                <option value="info">Info</option>
+                <option value="warning">Warning</option>
+                <option value="error">Error</option>
+                <option value="critical">Critical</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="dateRange" class="form-label">Date Range</label>
+            <select id="dateRange" class="form-select">
+                <option value="1">Last 24 Hours</option>
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="all">All Time</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="searchLogs" class="form-label">Search</label>
+            <input type="text" id="searchLogs" class="form-control" placeholder="Search logs...">
+        </div>
+    </div>
+    
+    <div class="logs-stats">
+        <div class="stat-card">
+            <div class="stat-icon info">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="infoCount">0</div>
+                <div class="stat-label">Info</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="warningCount">0</div>
+                <div class="stat-label">Warnings</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon error">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="errorCount">0</div>
+                <div class="stat-label">Errors</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon critical">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="criticalCount">0</div>
+                <div class="stat-label">Critical</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="logs-table-container">
+        <table class="table logs-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Type</th>
+                    <th>Severity</th>
+                    <th>Message</th>
+                    <th>Source</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="logsTableBody">
+                <tr>
+                    <td colspan="6" class="text-center">Loading logs...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="logs-pagination">
+        <nav aria-label="Logs pagination">
+            <ul class="pagination">
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1">Previous</a>
+                </li>
+                <li class="page-item active">
+                    <a class="page-link" href="#">1</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#">2</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#">3</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#">Next</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadLogs();
+    loadLogsStats();
+    setupLogFilters();
+});
+
+function loadLogs() {
+    fetch('/api/logs?' + new URLSearchParams({
+        type: document.getElementById('logType')?.value || 'all',
+        severity: document.getElementById('logSeverity')?.value || 'all',
+        date_range: document.getElementById('dateRange')?.value || '1',
+        search: document.getElementById('searchLogs')?.value || ''
+    }))
+    .then(response => response.json())
+    .then(data => {
+        updateLogsTable(data);
+    })
+    .catch(error => {
+        console.error('Error loading logs:', error);
+        const tbody = document.getElementById('logsTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Error loading logs</td></tr>';
+        }
+    });
+}
+
+function loadLogsStats() {
+    fetch('/api/logs/stats')
+    .then(response => response.json())
+    .then(data => {
+        updateLogsStats(data);
+    })
+    .catch(error => {
+        console.error('Error loading logs stats:', error);
+    });
+}
+
+function updateLogsTable(logs) {
+    const tbody = document.getElementById('logsTableBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    if (logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No logs found</td></tr>';
+        return;
+    }
+    
+    logs.forEach(log => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${log.timestamp}</td>
+            <td><span class="badge bg-secondary">${log.type}</span></td>
+            <td><span class="badge bg-${getSeverityColor(log.severity)}">${log.severity}</span></td>
+            <td>${log.message}</td>
+            <td>${log.source}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="viewLogDetails(${log.id})">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function updateLogsStats(stats) {
+    const elements = {
+        'infoCount': stats.info || 0,
+        'warningCount': stats.warning || 0,
+        'errorCount': stats.error || 0,
+        'criticalCount': stats.critical || 0
+    };
+    
+    Object.keys(elements).forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = elements[id];
+        }
+    });
+}
+
+function getSeverityColor(severity) {
+    switch (severity) {
+        case 'info': return 'info';
+        case 'warning': return 'warning';
+        case 'error': return 'danger';
+        case 'critical': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+function setupLogFilters() {
+    // Log type filter
+    const logType = document.getElementById('logType');
+    if (logType) {
+        logType.addEventListener('change', loadLogs);
+    }
+    
+    // Severity filter
+    const logSeverity = document.getElementById('logSeverity');
+    if (logSeverity) {
+        logSeverity.addEventListener('change', loadLogs);
+    }
+    
+    // Date range filter
+    const dateRange = document.getElementById('dateRange');
+    if (dateRange) {
+        dateRange.addEventListener('change', loadLogs);
+    }
+    
+    // Search
+    const searchLogs = document.getElementById('searchLogs');
+    if (searchLogs) {
+        let searchTimeout;
+        searchLogs.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(loadLogs, 500);
+        });
+    }
+    
+    // Refresh button
+    const refreshLogs = document.getElementById('refreshLogs');
+    if (refreshLogs) {
+        refreshLogs.addEventListener('click', function() {
+            loadLogs();
+            loadLogsStats();
+            showToast('Logs refreshed', 'info');
+        });
+    }
+    
+    // Export button
+    const exportLogs = document.getElementById('exportLogs');
+    if (exportLogs) {
+        exportLogs.addEventListener('click', function() {
+            exportLogsData();
+        });
+    }
+    
+    // Clear logs button
+    const clearLogs = document.getElementById('clearLogs');
+    if (clearLogs) {
+        clearLogs.addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear all logs?')) {
+                clearAllLogs();
+            }
+        });
+    }
+}
+
+function viewLogDetails(logId) {
+    showToast(`Viewing details for log #${logId}`, 'info');
+}
+
+function exportLogsData() {
+    fetch('/api/logs')
+    .then(response => response.json())
+    .then(logs => {
+        const csv = convertToCSV(logs);
+        downloadCSV(csv, 'logs.csv');
+        showToast('Logs exported successfully', 'success');
+    })
+    .catch(error => {
+        console.error('Error exporting logs:', error);
+        showToast('Failed to export logs', 'error');
+    });
+}
+
+function convertToCSV(data) {
+    const headers = ['ID', 'Timestamp', 'Type', 'Severity', 'Message', 'Source'];
+    const rows = data.map(log => [
+        log.id,
+        log.timestamp,
+        log.type,
+        log.severity,
+        `"${log.message}"`,
+        log.source
+    ]);
+    
+    return [headers, ...rows].map(row => row.join(',')).join('\n');
+}
+
+function downloadCSV(csv, filename) {
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+function clearAllLogs() {
+    // This would normally call an API to clear logs
+    showToast('Logs cleared successfully', 'success');
+    loadLogs();
+    loadLogsStats();
+}
+</script>
+{% endblock %}

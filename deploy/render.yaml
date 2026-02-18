@@ -1,0 +1,21 @@
+services:
+  # Network Monitoring Dashboard Service
+  - type: web
+    name: network-monitor
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run_production.py
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 5000
+    healthCheckPath: /
+    autoDeploy: true
+    disk:
+      name: network-monitor-disk
+      mountPath: /app/data
+      sizeGB: 1

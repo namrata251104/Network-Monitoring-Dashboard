@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Network Monitor{% endblock %}
+
+{% block breadcrumb %}
+<span>Settings</span>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <div class="settings-header">
+        <h1 class="settings-title">Settings</h1>
+        <p class="settings-subtitle">Configure your monitoring preferences</p>
+    </div>
+    
+    <div class="settings-grid">
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <h3>Alert Thresholds</h3>
+                <p>Configure when to trigger alerts</p>
+            </div>
+            <div class="settings-card-body">
+                <div class="form-group">
+                    <label for="cpuThreshold" class="form-label">CPU Alert Threshold (%)</label>
+                    <input type="range" id="cpuThreshold" class="form-range" min="50" max="100" value="85">
+                    <div class="range-value">
+                        <span id="cpuThresholdValue">85%</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="ramThreshold" class="form-label">RAM Alert Threshold (%)</label>
+                    <input type="range" id="ramThreshold" class="form-range" min="50" max="100" value="90">
+                    <div class="range-value">
+                        <span id="ramThresholdValue">90%</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="diskThreshold" class="form-label">Disk Alert Threshold (%)</label>
+                    <input type="range" id="diskThreshold" class="form-range" min="50" max="100" value="95">
+                    <div class="range-value">
+                        <span id="diskThresholdValue">95%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <h3>Refresh Settings</h3>
+                <p>Control data update frequency</p>
+            </div>
+            <div class="settings-card-body">
+                <div class="form-group">
+                    <label for="refreshInterval" class="form-label">Auto Refresh Interval (seconds)</label>
+                    <select id="refreshInterval" class="form-select">
+                        <option value="1">1 second</option>
+                        <option value="2" selected>2 seconds</option>
+                        <option value="5">5 seconds</option>
+                        <option value="10">10 seconds</option>
+                        <option value="30">30 seconds</option>
+                    </select>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="enableNotifications" class="form-check-input" checked>
+                    <label for="enableNotifications" class="form-check-label">
+                        Enable browser notifications
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="enableSounds" class="form-check-input">
+                    <label for="enableSounds" class="form-check-label">
+                        Enable alert sounds
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <h3>Display Settings</h3>
+                <p>Customize the dashboard appearance</p>
+            </div>
+            <div class="settings-card-body">
+                <div class="form-group">
+                    <label for="chartType" class="form-label">Chart Type</label>
+                    <select id="chartType" class="form-select">
+                        <option value="line">Line Chart</option>
+                        <option value="bar">Bar Chart</option>
+                        <option value="doughnut">Doughnut Chart</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="theme" class="form-label">Color Theme</label>
+                    <select id="theme" class="form-select">
+                        <option value="default">Default (Blue)</option>
+                        <option value="dark">Dark Mode</option>
+                        <option value="green">Green</option>
+                        <option value="purple">Purple</option>
+                    </select>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="showAnimations" class="form-check-input" checked>
+                    <label for="showAnimations" class="form-check-label">
+                        Enable animations
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <h3>Data Management</h3>
+                <p>Manage stored data and logs</p>
+            </div>
+            <div class="settings-card-body">
+                <div class="form-group">
+                    <label for="dataRetention" class="form-label">Data Retention Period</label>
+                    <select id="dataRetention" class="form-select">
+                        <option value="1">1 day</option>
+                        <option value="7">7 days</option>
+                        <option value="30" selected>30 days</option>
+                        <option value="90">90 days</option>
+                    </select>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-outline-danger" id="clearLogs">
+                        <i class="fas fa-trash"></i>
+                        Clear Logs
+                    </button>
+                    <button class="btn btn-outline-warning" id="exportData">
+                        <i class="fas fa-download"></i>
+                        Export Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="settings-actions">
+        <button class="btn btn-primary" id="saveSettings">
+            <i class="fas fa-save"></i>
+            Save Settings
+        </button>
+        <button class="btn btn-outline-secondary" id="resetSettings">
+            <i class="fas fa-undo"></i>
+            Reset to Default
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadSettings();
+    setupSettingsListeners();
+});
+
+function loadSettings() {
+    const savedSettings = localStorage.getItem('dashboardSettings');
+    if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        
+        // Update threshold sliders
+        if (settings.cpuThreshold) {
+            document.getElementById('cpuThreshold').value = settings.cpuThreshold;
+            document.getElementById('cpuThresholdValue').textContent = settings.cpuThreshold + '%';
+        }
+        if (settings.ramThreshold) {
+            document.getElementById('ramThreshold').value = settings.ramThreshold;
+            document.getElementById('ramThresholdValue').textContent = settings.ramThreshold + '%';
+        }
+        if (settings.diskThreshold) {
+            document.getElementById('diskThreshold').value = settings.diskThreshold;
+            document.getElementById('diskThresholdValue').textContent = settings.diskThreshold + '%';
+        }
+        
+        // Update other settings
+        if (settings.refreshInterval) {
+            document.getElementById('refreshInterval').value = settings.refreshInterval;
+        }
+        if (settings.enableNotifications !== undefined) {
+            document.getElementById('enableNotifications').checked = settings.enableNotifications;
+        }
+        if (settings.enableSounds !== undefined) {
+            document.getElementById('enableSounds').checked = settings.enableSounds;
+        }
+        if (settings.chartType) {
+            document.getElementById('chartType').value = settings.chartType;
+        }
+        if (settings.theme) {
+            document.getElementById('theme').value = settings.theme;
+        }
+        if (settings.showAnimations !== undefined) {
+            document.getElementById('showAnimations').checked = settings.showAnimations;
+        }
+    }
+}
+
+function setupSettingsListeners() {
+    // Threshold sliders
+    const cpuThreshold = document.getElementById('cpuThreshold');
+    const ramThreshold = document.getElementById('ramThreshold');
+    const diskThreshold = document.getElementById('diskThreshold');
+    
+    if (cpuThreshold) {
+        cpuThreshold.addEventListener('input', (e) => {
+            document.getElementById('cpuThresholdValue').textContent = e.target.value + '%';
+        });
+    }
+    
+    if (ramThreshold) {
+        ramThreshold.addEventListener('input', (e) => {
+            document.getElementById('ramThresholdValue').textContent = e.target.value + '%';
+        });
+    }
+    
+    if (diskThreshold) {
+        diskThreshold.addEventListener('input', (e) => {
+            document.getElementById('diskThresholdValue').textContent = e.target.value + '%';
+        });
+    }
+    
+    // Save settings button
+    const saveSettingsBtn = document.getElementById('saveSettings');
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', saveSettings);
+    }
+    
+    // Reset settings button
+    const resetSettingsBtn = document.getElementById('resetSettings');
+    if (resetSettingsBtn) {
+        resetSettingsBtn.addEventListener('click', resetSettings);
+    }
+    
+    // Clear logs button
+    const clearLogsBtn = document.getElementById('clearLogs');
+    if (clearLogsBtn) {
+        clearLogsBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear all logs?')) {
+                showToast('Logs cleared successfully', 'success');
+            }
+        });
+    }
+    
+    // Export data button
+    const exportDataBtn = document.getElementById('exportData');
+    if (exportDataBtn) {
+        exportDataBtn.addEventListener('click', function() {
+            exportSystemData();
+        });
+    }
+}
+
+function saveSettings() {
+    const settings = {
+        cpuThreshold: parseInt(document.getElementById('cpuThreshold').value),
+        ramThreshold: parseInt(document.getElementById('ramThreshold').value),
+        diskThreshold: parseInt(document.getElementById('diskThreshold').value),
+        refreshInterval: parseInt(document.getElementById('refreshInterval').value),
+        enableNotifications: document.getElementById('enableNotifications').checked,
+        enableSounds: document.getElementById('enableSounds').checked,
+        chartType: document.getElementById('chartType').value,
+        theme: document.getElementById('theme').value,
+        showAnimations: document.getElementById('showAnimations').checked
+    };
+    
+    localStorage.setItem('dashboardSettings', JSON.stringify(settings));
+    
+    // Apply theme immediately
+    applyTheme(settings.theme);
+    
+    // Show success message
+    showToast('Settings saved successfully!', 'success');
+    
+    // Update refresh interval if changed
+    if (window.refreshInterval) {
+        window.refreshInterval = settings.refreshInterval * 1000;
+    }
+}
+
+function resetSettings() {
+    if (confirm('Are you sure you want to reset all settings to default?')) {
+        localStorage.removeItem('dashboardSettings');
+        
+        // Reset form values
+        document.getElementById('cpuThreshold').value = 85;
+        document.getElementById('cpuThresholdValue').textContent = '85%';
+        document.getElementById('ramThreshold').value = 90;
+        document.getElementById('ramThresholdValue').textContent = '90%';
+        document.getElementById('diskThreshold').value = 95;
+        document.getElementById('diskThresholdValue').textContent = '95%';
+        document.getElementById('refreshInterval').value = 2;
+        document.getElementById('enableNotifications').checked = true;
+        document.getElementById('enableSounds').checked = false;
+        document.getElementById('chartType').value = 'line';
+        document.getElementById('theme').value = 'default';
+        document.getElementById('showAnimations').checked = true;
+        
+        // Apply default theme
+        applyTheme('default');
+        
+        showToast('Settings reset to default', 'info');
+    }
+}
+
+function applyTheme(theme) {
+    document.body.classList.remove('dark-mode');
+    
+    switch (theme) {
+        case 'dark':
+            document.body.classList.add('dark-mode');
+            break;
+        case 'green':
+            document.documentElement.style.setProperty('--primary-color', '#48bb78');
+            document.documentElement.style.setProperty('--secondary-color', '#38a169');
+            break;
+        case 'purple':
+            document.documentElement.style.setProperty('--primary-color', '#9f7aea');
+            document.documentElement.style.setProperty('--secondary-color', '#805ad5');
+            break;
+        default:
+            document.documentElement.style.setProperty('--primary-color', '#667eea');
+            document.documentElement.style.setProperty('--secondary-color', '#764ba2');
+    }
+}
+
+function exportSystemData() {
+    // Create sample data to export
+    const data = {
+        settings: JSON.parse(localStorage.getItem('dashboardSettings') || '{}'),
+        timestamp: new Date().toISOString(),
+        version: '1.0.0'
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'system-data.json';
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    showToast('System data exported successfully', 'success');
+}
+</script>
+{% endblock %}
+

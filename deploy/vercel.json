@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "name": "network-monitor-dashboard",
+  "builds": [
+    {
+      "src": "app.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "app.py"
+    }
+  ],
+  "env": {
+    "FLASK_ENV": "production",
+    "HOST": "0.0.0.0",
+    "PORT": "5000"
+  },
+  "functions": {
+    "app.py": {
+      "runtime": "python3.9"
+    }
+  }
+}
