@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, session
+from flask import Blueprint, render_template, session, redirect, url_for
 from routes.auth import login_required
 
 main_bp = Blueprint('main', __name__)

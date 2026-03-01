@@ -25,25 +25,34 @@ def login():
         
         user = User.query.filter_by(username=username).first()
         
-        login_log = LoginLog(
-            user_id=user.id if user else None,
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent'),
-            success=False
-        )
-        
         if user and user.check_password(password) and user.is_active:
             session['user_id'] = user.id
             session['username'] = user.username
-            login_log.user_id = user.id
-            login_log.success = True
+            
+            # Create successful login log
+            login_log = LoginLog(
+                user_id=user.id,
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent'),
+                success=True
+            )
             db.session.add(login_log)
             db.session.commit()
+            
             flash('Login successful!', 'success')
             return redirect(url_for('main.dashboard'))
         else:
-            db.session.add(login_log)
-            db.session.commit()
+            # For failed login, only create log if user exists (to avoid NULL constraint)
+            if user:
+                login_log = LoginLog(
+                    user_id=user.id,
+                    ip_address=request.remote_addr,
+                    user_agent=request.headers.get('User-Agent'),
+                    success=False
+                )
+                db.session.add(login_log)
+                db.session.commit()
+            
             flash('Invalid username or password', 'error')
             return render_template('login_simple.html')
     
